@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mamee Monster: Pengembaraan Rumah Lapar</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #0f1020;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            max-height: 932px;
+            background: linear-gradient(135deg, #1e272c, #2f3640);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 25px rgba(0,0,0,0.7);
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 10;
+            background: #0f1020;
+        }
+
+        .screen.hidden, .overlay.hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            color: #fbc531;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px #e84118;
+        }
+
+        p {
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            color: #f5f6fa;
+        }
+
+        input[type="text"] {
+            width: 85%;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 25px;
+            border: 3px solid #fbc531;
+            background: #fff;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .btn {
+            background-color: #e84118;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .btn-green {
+            background-color: #4cd137;
+        }
+
+        /* HUD Header */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 5;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+
+        /* Dunia Permainan */
+        #world-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #2f3640;
+            z-index: 2;
+        }
+
+        #world {
+            position: relative;
+            width: 100%;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .room-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #353b48, #191923);
+        }
+
+        #monster {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 100px;
+            background: #00d2d3;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            border: 4px solid #fff;
+            z-index: 3;
+        }
+
+        #monster.angry { background: #ff6b6b; }
+        #monster.happy { background: #4cd137; }
+
+        .monster-face { font-size: 32px; }
+
+        .speech-bubble {
+            position: absolute;
+            top: -50px;
+            background: white;
+            color: #2f3640;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .collectible {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90px;
+            height: 90px;
+            background: #fff;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+            border: 3px solid #fbc531;
+            z-index: 4;
+            padding: 5px;
+        }
+
+        .collectible span {
+            font-size: 10px;
+            color: #2f3640;
+            font-weight: bold;
+            margin-top: 3px;
+            text-align: center;
+        }
+
+        .collectible .icon { font-size: 28px; }
+
+        #nav-controls {
+            width: 100%;
+            height: 70px;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 12px;
+            z-index: 5;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        /* Overlay Cabaran */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .challenge-card {
+            background: #fff;
+            color: #2f3640;
+            width: 100%;
+            max-width: 390px;
+            border-radius: 20px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .challenge-title {
+            font-size: 15px;
+            color: #e84118;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .drop-zone {
+            width: 100%;
+            min-height: 55px;
+            border: 2px dashed #ced6e0;
+            border-radius: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+            background: #f8f9fa;
+        }
+
+        .word-bank {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .word-tile {
+            background: #57606f;
+            color: white;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- HUD Header -->
+        <div id="hud" class="screen hidden" style="height: 50px; z-index: 5; justify-content: space-between; flex-direction: row; padding: 0 12px; background: rgba(0,0,0,0.85);">
+            <span id="hud-room">Bilik: Ruang Tamu</span>
+            <span id="hud-score">Markah: 0</span>
+            <span id="hud-progress">Misi: 1/5</span>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen">
+            <h1>MAMEE MONSTER</h1>
+            <p>Pengembaraan Rumah Lapar<br><b>Topik: Kata Adjektif Bentuk (Tahun 2)</b></p>
+            <div style="font-size: 45px; margin-bottom: 15px;">⚽ 🍽️ 🛣️</div>
+            <input type="text" id="player-name" placeholder="Masukkan Nama Murid" maxlength="15">
+            <button class="btn" onclick="startGame()">MULA PENGEMBARAAN</button>
+        </div>
+
+        <!-- Game World Screen -->
+        <div id="world-screen" class="screen hidden" style="justify-content: flex-end; padding: 0;">
+            <div id="world">
+                <div class="room-bg" id="room-background"></div>
+                
+                <div id="monster" class="angry">
+                    <div class="speech-bubble" id="monster-speech">GRRR! Cari objek bentuk!</div>
+                    <div class="monster-face" id="monster-face">😠</div>
+                </div>
+
+                <div id="room-objects"></div>
+            </div>
+
+            <div id="nav-controls">
+                <button class="nav-btn" onclick="changeRoom(-1)">◀ Bilik Kiri</button>
+                <span id="room-indicator" style="font-size: 13px; font-weight: bold; color:#fbc531;">Ruang Tamu</span>
+                <button class="nav-btn" onclick="changeRoom(1)">Bilik Kanan ▶</button>
+            </div>
+        </div>
+
+        <!-- Challenge Overlay -->
+        <div id="challenge-overlay" class="overlay hidden">
+            <div class="challenge-card">
+                <div class="challenge-title" id="challenge-title">Bina Ayat Kata Adjektif Bentuk</div>
+                <div style="font-size: 13px; color: #2f3640; margin-bottom: 10px; text-align: center;">Susun jubin perkataan jadi ayat betul:</div>
+                
+                <div class="drop-zone" id="answer-zone"></div>
+                <div class="word-bank" id="word-bank"></div>
+
+                <div style="display: flex; gap: 8px; width: 100%;">
+                    <button class="btn" style="flex: 1; padding: 10px; font-size: 13px; background: #ced6e0; color: #333;" onclick="resetChallenge()">Set Semula</button>
+                    <button class="btn btn-green" style="flex: 1; padding: 10px; font-size: 13px;" onclick="checkAnswer()">Semak</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="screen hidden">
+            <h1>TAHNIAH HEBAT!</h1>
+            <p id="final-stats">Anda telah menyelesaikan semua misi bentuk!</p>
+            <div style="font-size: 50px; margin: 10px 0;">🏆🎉</div>
+            <button class="btn btn-green" onclick="location.reload()">MAIN SEMULA</button>
+        </div>
+    </div>
+
+    <script>
+        // 5 Soalan Utama (Pendek & Ringkas)
+        const questionsData = [
+            { id: 1, shape: "bulat", object: "bola bulat", icon: "⚽", sentence: "Bola itu berbentuk bulat.", room: "Ruang Tamu", hint: "Bola bulat" },
+            { id: 2, shape: "leper", object: "pinggan leper", icon: "🍽️", sentence: "Pinggan itu leper.", room: "Dapur", hint: "Pinggan leper" },
+            { id: 3, shape: "bengkok", object: "jalan bengkok", icon: "🛣️", sentence: "Jalan itu bengkok.", room: "Halaman", hint: "Jalan bengkok" },
+            { id: 4, shape: "buncit", object: "perut buncit", icon: "🧸", sentence: "Perut patung itu buncit.", room: "Bilik Tidur", hint: "Perut buncit" },
+            { id: 5, shape: "lurus", object: "garisan lurus", icon: "📏", sentence: "Garisan itu lurus.", room: "Stor", hint: "Garisan lurus" }
+        ];
+
+        const rooms = ["Ruang Tamu", "Dapur", "Halaman", "Bilik Tidur", "Stor"];
+        let currentRoomIndex = 0;
+        let score = 0;
+        let currentQuestionIndex = 0;
+        let playerName = "";
+        let currentActiveItem = null;
+        let selectedWords = [];
+        let availableWords = [];
+        let attemptCount = 0;
+
+        function startGame() {
+            const nameInput = document.getElementById("player-name").value.trim();
+            if (!nameInput) {
+                alert("Sila masukkan nama murid terlebih dahulu!");
+                return;
+            }
+            playerName = nameInput;
+            
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("hud").classList.remove("hidden");
+            document.getElementById("world-screen").classList.remove("hidden");
+            
+            updateHUD();
+            loadRoomObjects();
+        }
+
+        function updateHUD() {
+            document.getElementById("hud-room").innerText = `Bilik: ${rooms[currentRoomIndex]}`;
+            document.getElementById("room-indicator").innerText = rooms[currentRoomIndex];
+            document.getElementById("hud-score").innerText = `Markah: ${score}`;
+            document.getElementById("hud-progress").innerText = `Misi: ${currentQuestionIndex + 1}/${questionsData.length}`;
+        }
+
+        function changeRoom(direction) {
+            currentRoomIndex = (currentRoomIndex + direction + rooms.length) % rooms.length;
+            updateHUD();
+            loadRoomObjects();
+        }
+
+        function loadRoomObjects() {
+            const container = document.getElementById("room-objects");
+            container.innerHTML = "";
+            
+            const currentRoomName = rooms[currentRoomIndex];
+            const q = questionsData[currentQuestionIndex];
+
+            if (q.room === currentRoomName) {
+                const objEl = document.createElement("div");
+                objEl.className = "collectible";
+                objEl.innerHTML = `<div class="icon">${q.icon}</div><span>${q.object}</span>`;
+                objEl.onclick = () => triggerChallenge(q);
+                container.appendChild(objEl);
+                
+                setMonsterState("angry", `Jumpa bentuk ${q.object}! Ketik untuk kumpul!`);
+            } else {
+                setMonsterState("angry", `Cari objek di bilik ${q.room}!`);
+            }
+        }
+
+        function setMonsterState(state, message) {
+            const monster = document.getElementById("monster");
+            const face = document.getElementById("monster-face");
+            const speech = document.getElementById("monster-speech");
+
+            monster.className = state;
+            speech.innerText = message;
+            if (state === "angry") face.innerText = "😠";
+            if (state === "happy") face.innerText = "😋";
+        }
+
+        function triggerChallenge(q) {
+            currentActiveItem = q;
+            attemptCount = 1;
+            document.getElementById("challenge-overlay").classList.remove("hidden");
+            document.getElementById("challenge-title").innerText = `Cabaran Bentuk: ${q.hint.toUpperCase()}`;
+            
+            selectedWords = [];
+            const cleanSentence = q.sentence.replace(".", "");
+            availableWords = cleanSentence.split(" ");
+            availableWords[availableWords.length - 1] += ".";
+            availableWords.sort(() => Math.random() - 0.5);
+
+            renderChallengeTiles();
+        }
+
+        function renderChallengeTiles() {
+            const dropZone = document.getElementById("answer-zone");
+            const wordBank = document.getElementById("word-bank");
+
+            dropZone.innerHTML = "";
+            wordBank.innerHTML = "";
+
+            selectedWords.forEach((word, index) => {
+                const tile = document.createElement("div");
+                tile.className = "word-tile";
+                tile.innerText = word;
+                tile.onclick = () => {
+                    selectedWords.splice(index, 1);
+                    availableWords.push(word);
+                    renderChallengeTiles();
+                };
+                dropZone.appendChild(tile);
+            });
+
+            availableWords.forEach((word, index) => {
+                const tile = document.createElement("div");
+                tile.className = "word-tile";
+                tile.innerText = word;
+                tile.onclick = () => {
+                    availableWords.splice(index, 1);
+                    selectedWords.push(word);
+                    renderChallengeTiles();
+                };
+                wordBank.appendChild(tile);
+            });
+        }
+
+        function resetChallenge() {
+            if (currentActiveItem) triggerChallenge(currentActiveItem);
+        }
+
+        function checkAnswer() {
+            const userAnswer = selectedWords.join(" ");
+            const correctAnswer = currentActiveItem.sentence;
+
+            if (userAnswer === correctAnswer) {
+                const awarded = attemptCount === 1 ? 100 : 50;
+                score += awarded;
+                
+                setMonsterState("happy", "NYAM! Betul & hebat!");
+                document.getElementById("challenge-overlay").classList.add("hidden");
+                updateHUD();
+
+                setTimeout(() => {
+                    currentQuestionIndex++;
+                    if (currentQuestionIndex >= questionsData.length) {
+                        document.getElementById("world-screen").classList.add("hidden");
+                        document.getElementById("end-screen").classList.remove("hidden");
+                        document.getElementById("final-stats").innerText = `Tahniah ${playerName}! Markah penuh anda ialah ${score}/500.`;
+                    } else {
+                        loadRoomObjects();
+                    }
+                }, 1500);
+            } else {
+                attemptCount++;
+                alert("Susunan ayat atau tanda baca belum tepat. Cuba lagi!");
+            }
+        }
+    </script>
+</body>
+</html>
